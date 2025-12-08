@@ -237,7 +237,7 @@ const response = await fetch(`${API_BASE_URL}/endpoint`, {
 
 ```bash
 # Run development server
-npm run dev
+npm run start
 
 # Build for production
 npm run build
@@ -320,22 +320,6 @@ vercel --prod
 - Input validation on forms
 - XSS protection with React
 - HTTPS recommended for production
-
-## 📄 License
-
-MIT
-
-## 👤 Author
-
-Your Name - [GitHub Profile](https://github.com/yourusername)
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit changes (`git commit -m 'Add AmazingFeature'`)
-4. Push to branch (`git push origin feature/AmazingFeature`)
-5. Open Pull Request
 
 ---
 
