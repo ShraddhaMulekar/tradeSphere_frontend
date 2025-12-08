@@ -337,10 +337,6 @@ Your Name - [GitHub Profile](https://github.com/yourusername)
 4. Push to branch (`git push origin feature/AmazingFeature`)
 5. Open Pull Request
 
-## 📞 Support
-
-For support, email your-email@example.com or open an issue.
-
 ---
 
 **Built with ❤️ using React + Vite**
