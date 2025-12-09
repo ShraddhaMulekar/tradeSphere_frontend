@@ -1,33 +1,51 @@
 import React, { useState } from "react";
 import { API_BASE_URL } from "../api/api";
-import { useNavigate } from "react-router-dom";
 
 export default function Register() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [msg, setMsg] = useState("");
-  const navigate = useNavigate();
+  const [isError, setIsError] = useState(false);
+
+  const handleNavigate = (path) => {
+    window.location.href = path;
+  };
 
   const handleRegister = async (e) => {
     e.preventDefault();
     setMsg("");
+    setIsError(false);
 
-    const res = await fetch(`${API_BASE_URL}/auth/register`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, email, password }),
-    });
-
-    const data = await res.json();
-
-    if (!res.ok) {
-      setMsg(data.message);
+    // Validate fields BEFORE making API call
+    if (!name || !email || !password) {
+      setMsg("All fields are required!");
+      setIsError(true);
       return;
     }
 
-    setMsg("Registered Successfully! Redirecting to Login...");
-    setTimeout(() => navigate("/login"), 1500);
+    try {
+      const res = await fetch(`${API_BASE_URL}/auth/register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, email, password }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setMsg(data.message || "Registration failed!");
+        setIsError(true);
+        return;
+      }
+
+      setMsg("Registered Successfully! Redirecting to Login...");
+      setIsError(false);
+      setTimeout(() => handleNavigate("/login"), 1500);
+    } catch (error) {
+      setMsg("An error occurred. Please try again.");
+      setIsError(true);
+    }
   };
 
   return (
@@ -35,7 +53,7 @@ export default function Register() {
       <div style={styles.card}>
         <h2 style={styles.title}>Create Account</h2>
 
-        {msg && <p style={styles.message}>{msg}</p>}
+        {msg && <p style={{ ...styles.message, color: isError ? "#eb3824" : "#27ae60" }}>{msg}</p>}
 
         <form onSubmit={handleRegister} style={styles.form}>
           <input
@@ -64,7 +82,7 @@ export default function Register() {
           <button style={styles.registerBtn}>Register</button>
         </form>
 
-        <button style={styles.loginBtn} onClick={() => navigate("/login")}>
+        <button style={styles.loginBtn} onClick={() => handleNavigate("/login")}>
           Already have an account? Login
         </button>
       </div>
@@ -72,9 +90,6 @@ export default function Register() {
   );
 }
 
-// ---------------------------------------------
-// INLINE CSS
-// ---------------------------------------------
 const styles = {
   wrapper: {
     minHeight: "100vh",
@@ -113,6 +128,7 @@ const styles = {
     border: "1px solid #ccc",
     fontSize: "16px",
     width: "100%",
+    boxSizing: "border-box",
   },
 
   registerBtn: {
@@ -124,6 +140,7 @@ const styles = {
     cursor: "pointer",
     fontSize: "16px",
     marginTop: "10px",
+    fontWeight: "500",
   },
 
   loginBtn: {
@@ -137,8 +154,8 @@ const styles = {
   },
 
   message: {
-    color: "green",
     marginBottom: "10px",
     fontSize: "14px",
+    fontWeight: "500",
   },
 };
