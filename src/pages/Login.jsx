@@ -22,7 +22,7 @@ export default function Login() {
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.message);
+      if (!data.success) throw new Error(data.message);
 
       login(data.token);
       localStorage.setItem("token", data.token);
@@ -69,7 +69,7 @@ export default function Login() {
 }
 
 // ---------------------------------------------
-// INLINE CSS (in same file)
+// CSS 
 // ---------------------------------------------
 const styles = {
   wrapper: {
