@@ -33,7 +33,7 @@ export default function Register() {
 
       const data = await res.json();
 
-      if (!res.ok) {
+      if (!data.success) {
         setMsg(data.message || "Registration failed!");
         setIsError(true);
         return;
