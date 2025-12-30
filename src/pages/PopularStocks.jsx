@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from "react";
 import { API_BASE_URL } from "../api/api";
 import BuyForm from "../components/BuyForm";
+import Navbar from "../components/Navbar";
 
 export default function PopularStocks() {
   const [stocks, setStocks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedStock, setSelectedStock] = useState(null);
+  const [debugError, setDebugError] = useState(null);
 
   useEffect(() => {
     fetchPopularStocks();
@@ -13,15 +15,22 @@ export default function PopularStocks() {
 
   const fetchPopularStocks = async () => {
     try {
+      setLoading(true);
       const token = localStorage.getItem("token");
       const res = await fetch(`${API_BASE_URL}/stock/popular`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
       const data = await res.json();
-      setStocks(data.stocks || []);
+      console.log("Popular Response:", data); // Debugging
+
+      // Robust parsing: check for data.stocks OR data.Data OR direct array
+      const validStocks = data.stocks || data.Data || (Array.isArray(data) ? data : []);
+
+      setStocks(validStocks);
     } catch (err) {
       console.error("Error fetching popular stocks:", err);
+      setDebugError(err.message);
     } finally {
       setLoading(false);
     }
@@ -62,58 +71,91 @@ export default function PopularStocks() {
     });
   };
 
-  if (loading) {
-    return <div className="loading">Loading popular stocks...</div>;
-  }
-
   return (
-    <div className="popular-stocks-container">
-      <h2>📈 Popular Stocks</h2>
-      <p className="subtitle">Quick access to trending stocks with live prices</p>
+    <div className="markets-page">
+      <Navbar /> {/* EXPLICIT NAVBAR */}
 
-      <div className="stocks-grid">
-        {stocks.map((stock) => (
-          <div key={stock.symbol} className="stock-card">
-            <div className="stock-header">
-              <div>
-                <h3>{stock.symbol}</h3>
-                <p className="stock-name">{stock.name}</p>
-              </div>
-              <div className="stock-price">
-                <span className="price">₹{stock.price.toFixed(2)}</span>
-                <span className={`change ${stock.change >= 0 ? "positive" : "negative"}`}>
-                  {stock.change >= 0 ? "+" : ""}
-                  {stock.change.toFixed(2)} ({stock.changePercent.toFixed(2)}%)
-                </span>
-              </div>
-            </div>
+      <div className="m-container">
+        <div className="m-header">
+          <h1 className="m-title">Market <span className="text-gradient">Movers</span></h1>
+          <p className="m-subtitle">Top trending assets making waves today</p>
+        </div>
 
-            <div className="stock-actions">
-              <button
-                className="btn-watchlist"
-                onClick={() => addToWatchlist(stock.symbol)}
-              >
-                + Watchlist
-              </button>
-              <button
-                className="btn-buy"
-                onClick={() => handleBuyClick(stock)}
-              >
-                Buy Now
-              </button>
-            </div>
+        {loading ? (
+          <div className="loading-state">
+            <div className="spinner"></div>
+            <p>Loading market data...</p>
           </div>
-        ))}
+        ) : stocks.length === 0 ? (
+          <div className="empty-state glass-panel">
+            <h3>No market data available</h3>
+            <p>We couldn't load the popular stocks at this time.</p>
+            {debugError && <p className="error-text">Error: {debugError}</p>}
+            <button className="btn-retry" onClick={fetchPopularStocks}>Retry</button>
+          </div>
+        ) : (
+          <div className="m-grid">
+            {stocks.map((stock, index) => {
+              const isPositive = stock.change >= 0;
+              // Dynamic gradient based on performance
+              const cardBg = isPositive
+                ? "linear-gradient(145deg, rgba(16, 185, 129, 0.1), rgba(16, 185, 129, 0.02))"
+                : "linear-gradient(145deg, rgba(239, 68, 68, 0.1), rgba(239, 68, 68, 0.02))";
+
+              const borderColor = isPositive ? "rgba(16, 185, 129, 0.3)" : "rgba(239, 68, 68, 0.3)";
+
+              return (
+                <div
+                  key={stock.symbol}
+                  className="m-card"
+                  style={{
+                    background: cardBg,
+                    border: `1px solid ${borderColor}`
+                  }}
+                >
+                  <div className="m-card-top">
+                    <div className="m-sym-group">
+                      <span className="m-symbol">{stock.symbol}</span>
+                      <span className="m-name">{stock.name}</span>
+                    </div>
+                    <div className={`m-badge ${isPositive ? 'badge-green' : 'badge-red'}`}>
+                      {isPositive ? '↗' : '↘'}
+                    </div>
+                  </div>
+
+                  <div className="m-card-price-area">
+                    <span className="m-price">${stock.price.toFixed(2)}</span>
+                    <span className={`m-change ${isPositive ? 'text-green' : 'text-red'}`}>
+                      {isPositive ? "+" : ""}{stock.change.toFixed(2)} ({stock.changePercent.toFixed(2)}%)
+                    </span>
+                  </div>
+
+                  <div className="m-actions">
+                    <button
+                      className="btn-glass"
+                      onClick={() => addToWatchlist(stock.symbol)}
+                    >
+                      + Watch
+                    </button>
+                    <button
+                      className="btn-trade"
+                      onClick={() => handleBuyClick(stock)}
+                    >
+                      Trade
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
-      {/* Buy Form Modal */}
       {selectedStock && (
         <BuyForm
           stock={selectedStock}
           onClose={() => setSelectedStock(null)}
-          onSuccess={() => {
-            alert("Buy successful from popular stocks");
-          }}
+          onSuccess={() => alert("Order Executed Successfully!")}
         />
       )}
 
@@ -122,185 +164,195 @@ export default function PopularStocks() {
   );
 }
 
-/* ================= CSS ================= */
 const css = `
-.popular-stocks-container {
-  max-width: 1200px;
-  margin: 20px auto;
-  padding: 20px;
+.markets-page {
+  padding-top: 80px; 
+  min-height: 100vh;
+  background: #0a0e17;
+  color: #e2e8f0;
+  font-family: 'Outfit', sans-serif;
 }
 
-.popular-stocks-container h2 {
-  font-size: 28px;
+.m-container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 40px 24px;
+}
+
+.m-header {
+  margin-bottom: 40px;
+  text-align: center;
+}
+
+.m-title {
+  font-size: 42px;
+  font-weight: 800;
+  color: white;
   margin-bottom: 8px;
-  color: #1e293b;
-  text-align: center;
 }
 
-.subtitle {
-  color: #64748b;
-  margin-bottom: 24px;
-  font-size: 14px;
-  text-align: center;
+.text-gradient {
+  background: linear-gradient(to right, #bef264, #10b981);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
-.loading {
-  text-align: center;
-  padding: 40px;
+.m-subtitle {
+  color: #94a3b8;
   font-size: 18px;
-  color: #64748b;
 }
 
-.stocks-grid {
+.m-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 24px;
 }
 
-.stock-card {
-  background: white;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  padding: 16px;
-  transition: all 0.2s;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+.m-card {
+  border-radius: 16px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  transition: transform 0.2s, box-shadow 0.2s;
+  backdrop-filter: blur(10px);
 }
 
-.stock-card:hover {
-  border-color: #3b82f6;
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
-  transform: translateY(-2px);
+.m-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.3);
 }
 
-.stock-header {
+.m-card-top {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 16px;
+  align-items: flex-start;
 }
 
-.stock-card h3 {
-  font-size: 20px;
-  font-weight: 700;
-  color: #1e40af;
-  margin: 0 0 4px 0;
-}
-
-.stock-name {
-  font-size: 12px;
-  color: #64748b;
-  margin: 0;
-}
-
-.stock-price {
-  text-align: right;
-}
-
-.price {
-  display: block;
-  font-size: 20px;
-  font-weight: 700;
-  color: #1e293b;
-  margin-bottom: 4px;
-}
-
-.change {
-  font-size: 12px;
-  font-weight: 600;
-  padding: 2px 6px;
-  border-radius: 4px;
-}
-
-.change.positive {
-  color: #16a34a;
-  background: #dcfce7;
-}
-
-.change.negative {
-  color: #dc2626;
-  background: #fee2e2;
-}
-
-.stock-actions {
+.m-sym-group {
   display: flex;
-  gap: 8px;
+  flex-direction: column;
 }
 
-.stock-actions button {
-  flex: 1;
-  padding: 10px;
-  border: none;
-  border-radius: 6px;
+.m-symbol {
+  font-size: 20px;
+  font-weight: 700;
+  color: white;
+  letter-spacing: 0.5px;
+}
+
+.m-name {
+  font-size: 13px;
+  color: #94a3b8;
+  margin-top: 4px;
+  max-width: 150px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.m-badge {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   font-size: 14px;
+}
+
+.badge-green { background: rgba(16, 185, 129, 0.2); color: #10b981; }
+.badge-red { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
+
+.m-card-price-area {
+  margin-top: auto;
+  margin-bottom: 12px;
+}
+
+.m-price {
+  font-size: 28px;
+  font-weight: 700;
+  color: white;
+  display: block;
+}
+
+.m-change {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.text-green { color: #10b981; }
+.text-red { color: #ef4444; }
+
+.m-actions {
+  display: grid;
+  grid-template-columns: 1fr 1.5fr;
+  gap: 12px;
+}
+
+.btn-glass {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  color: white;
+  padding: 10px;
+  border-radius: 10px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: 0.2s;
+}
+.btn-glass:hover { background: rgba(255,255,255,0.1); }
+
+.btn-trade {
+  background: linear-gradient(135deg, #bef264, #10b981);
+  color: #022c22;
+  border: none;
+  padding: 10px;
+  border-radius: 10px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
+  transition: 0.2s;
+}
+.btn-trade:hover { filter: brightness(1.1); transform: scale(1.02); }
+
+.loading-state {
+  text-align: center;
+  padding: 60px;
+  color: #94a3b8;
 }
 
-.btn-watchlist {
-  background: #f1f5f9;
-  color: #475569;
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(255,255,255,0.1);
+  border-top-color: #bef264;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 20px;
 }
 
-.btn-watchlist:hover {
-  background: #e2e8f0;
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 
-.btn-buy {
-  background: #16a34a;
+.empty-state {
+  text-align: center;
+  padding: 40px;
+  max-width: 400px;
+  margin: 40px auto;
+  border-radius: 12px;
+  background: #111827;
+  border: 1px dashed #334155;
+  color: #94a3b8;
+}
+
+.btn-retry {
+  margin-top: 16px;
+  background: #3b82f6;
   color: white;
-}
-
-.btn-buy:hover {
-  background: #15803d;
-}
-
-/* ================= RESPONSIVE ================= */
-@media (max-width: 1024px) {
-  .stocks-grid {
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  }
-}
-
-@media (max-width: 768px) {
-  .popular-stocks-container {
-    padding: 15px;
-  }
-
-  .popular-stocks-container h2 {
-    font-size: 24px;
-  }
-
-  .stocks-grid {
-    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-    gap: 12px;
-  }
-
-  .stock-card {
-    padding: 14px;
-  }
-}
-
-@media (max-width: 480px) {
-  .stocks-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .stock-header {
-    flex-direction: column;
-    gap: 12px;
-  }
-
-  .stock-price {
-    text-align: left;
-  }
-
-  .stock-actions {
-    flex-direction: column;
-  }
-
-  .stock-actions button {
-    width: 100%;
-    padding: 12px;
-  }
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
 }
 `;

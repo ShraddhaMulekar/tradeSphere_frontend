@@ -4,7 +4,7 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
-import MainLayout from "./pages/MainLayout";
+import MainLayout from "./layout/MainLayout";
 import ProtectedRoute from "./ProtectedRoute";
 
 import SearchStocks from "./pages/SearchStocks";

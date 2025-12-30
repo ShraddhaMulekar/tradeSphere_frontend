@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { API_BASE_URL } from "../api/api";
+import FullLogo from "../assets/FullLogo.png";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -40,21 +41,8 @@ export default function Login() {
     <div className="login-container">
       {/* LEFT SIDE - HERO */}
       <div className="hero-section">
-        <div className="hero-content">
-          <h1 className="hero-title">Trade Smarter, <br />Not Harder.</h1>
-          <p className="hero-subtitle">
-            Join the fastest growing trading platform. Real-time data, advanced analytics, and zero commission.
-          </p>
-          <div className="hero-stats">
-            <div className="stat">
-              <h3>10M+</h3>
-              <span>Users</span>
-            </div>
-            <div className="stat">
-              <h3>$5B+</h3>
-              <span>Volume</span>
-            </div>
-          </div>
+        <div className="hero-logo-container" onClick={() => navigate("/")}>
+          <img src={FullLogo} alt="TradeSphere Logo" className="hero-logo-large" />
         </div>
 
         {/* Abstract Chart Graphic/Background Overlay */}
@@ -121,22 +109,24 @@ export default function Login() {
 const css = `
 .login-container {
   display: flex;
-  height: 100vh;
-  width: 100vw;
+  justify-content: center;
+  align-items: center;
   background: #0a0e17;
   overflow: hidden;
 }
 
 .hero-section {
   flex: 1.2;
-  background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%);
+  background: radial-gradient(circle at center, #1e293b 0%, #0a0e17 100%);
   position: relative;
   display: flex;
   flex-direction: column;
   justify-content: center;
+  align-items: center;
   padding: 60px;
   color: white;
   overflow: hidden;
+  border-right: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .hero-content {
@@ -213,6 +203,33 @@ const css = `
 .form-header {
   margin-bottom: 32px;
   text-align: left;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.hero-logo-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+  z-index: 2;
+  cursor: pointer;
+  transition: transform 0.3s ease;
+}
+
+.hero-logo-container:hover {
+  transform: scale(1.05);
+}
+
+.hero-logo-large {
+  width: 90%;
+  max-width: 600px;
+  height: auto;
+  filter: drop-shadow(0 0 50px rgba(59, 130, 246, 0.2));
+  object-fit: contain;
 }
 
 .form-title {

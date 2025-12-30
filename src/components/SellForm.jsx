@@ -2,21 +2,27 @@ import React, { useState } from "react";
 import { API_BASE_URL } from "../api/api";
 import { useWallet } from "../context/WalletContext";
 
-export default function BuyForm({ stock, onClose, onSuccess }) {
+export default function SellForm({ stock, onClose, onSuccess }) {
   const { refreshWallet } = useWallet();
   const [quantity, setQuantity] = useState(1);
-  const [buyPrice, setBuyPrice] = useState(stock.currentPrice || stock.price || "");
+  const [sellPrice, setSellPrice] = useState(stock.ltp || stock.currentPrice || stock.price || "");
   const [loading, setLoading] = useState(false);
 
-  const handleBuy = async () => {
-    const parsedBuyPrice = Number(buyPrice);
+  // Maximum quantity owned
+  const maxQty = stock.qty || stock.quantity || 0;
+
+  const handleSell = async () => {
+    const parsedSellPrice = Number(sellPrice);
     const parsedQty = Number(quantity);
 
-    if (!parsedBuyPrice || parsedBuyPrice <= 0) {
-      return alert("Enter a valid buy price (greater than 0)");
+    if (!parsedSellPrice || parsedSellPrice <= 0) {
+      return alert("Enter a valid sell price (greater than 0)");
     }
     if (!parsedQty || parsedQty <= 0) {
       return alert("Enter a valid quantity (greater than 0)");
+    }
+    if (parsedQty > maxQty) {
+      return alert(`You only own ${maxQty} shares!`);
     }
 
     try {
@@ -27,10 +33,10 @@ export default function BuyForm({ stock, onClose, onSuccess }) {
       const body = {
         symbol: stock.symbol,
         quantity: parsedQty,
-        price: parsedBuyPrice,
+        price: parsedSellPrice,
       };
 
-      const res = await fetch(`${API_BASE_URL}/trade/buy`, {
+      const res = await fetch(`${API_BASE_URL}/trade/sell`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -42,13 +48,13 @@ export default function BuyForm({ stock, onClose, onSuccess }) {
       const data = await res.json();
 
       if (!res.ok) {
-        console.error("Buy failed:", data);
-        return alert(data.message || "Buy failed");
+        console.error("Sell failed:", data);
+        return alert(data.message || "Sell failed");
       }
 
-      alert("✅ Order placed! Your portfolio and wallet will update in 5 seconds.");
+      alert("✅ Sell Order placed! Your portfolio and wallet will update in 5 seconds.");
 
-      // Immediate sync
+      // Immediate refresh
       refreshWallet();
       if (onSuccess) onSuccess();
 
@@ -61,67 +67,71 @@ export default function BuyForm({ stock, onClose, onSuccess }) {
       // Close the form
       if (onClose) onClose();
     } catch (err) {
-      console.error("handleBuy error:", err);
-      alert("Something went wrong while buying stock");
+      console.error("handleSell error:", err);
+      alert("Something went wrong while selling stock");
     } finally {
       setLoading(false);
     }
   };
 
-  const totalAmount = (Number(buyPrice) * Number(quantity)).toFixed(2);
-  const currentPrice = stock.currentPrice || stock.price || 0;
+  const totalAmount = (Number(sellPrice) * Number(quantity)).toFixed(2);
+  const currentPrice = stock.ltp || stock.currentPrice || stock.price || 0;
 
   return (
-    <div className="buy-form-overlay">
-      <div className="buy-form-container">
-        <div className="buy-form-card">
+    <div className="sell-form-overlay">
+      <div className="sell-form-container">
+        <div className="sell-form-card">
           {/* Header */}
           <div className="form-header">
             <div>
-              <h2>Buy: {stock.symbol}</h2>
-              {stock.name && <p className="stock-name">{stock.name}</p>}
+              <h2>Sell: {stock.symbol}</h2>
+              <p className="stock-info">
+                Available Qty: <strong>{maxQty}</strong>
+              </p>
             </div>
             <button className="close-btn" onClick={onClose}>✕</button>
           </div>
 
           {/* Current Price */}
           <div className="form-group">
-            <label>Current Price:</label>
+            <label>Current Market Price:</label>
             <div className="price-display">
               {currentPrice > 0 ? `₹${currentPrice.toFixed(2)}` : "Not Available"}
             </div>
           </div>
 
-          {/* Buy Price Input */}
+          {/* Sell Price Input */}
           <div className="form-group">
-            <label>Buy Price: *</label>
+            <label>Sell Price: *</label>
             <input
               type="number"
-              placeholder="Enter buy price"
+              placeholder="Enter sell price"
               min="0.01"
               step="0.01"
-              value={buyPrice}
-              onChange={(e) => setBuyPrice(e.target.value)}
+              value={sellPrice}
+              onChange={(e) => setSellPrice(e.target.value)}
               className="form-input"
             />
           </div>
 
           {/* Quantity Input */}
           <div className="form-group">
-            <label>Quantity: *</label>
+            <label>Quantity to Sell: *</label>
             <input
               type="number"
-              placeholder="Enter quantity"
+              placeholder={`Max: ${maxQty}`}
               min="1"
+              max={maxQty}
               value={quantity}
               onChange={(e) => setQuantity(e.target.value)}
-              className="form-input"
+              className={`form-input ${Number(quantity) > maxQty ? 'error-border' : ''}`}
             />
+            {Number(quantity) > maxQty && <span className="error-text">Exceeds available quantity!</span>}
           </div>
 
-          {/* Total Amount Display */}
+          {/* Total Value Display */}
           <div className="form-group">
-            <label>Total Amount:</label>
+            <label>Estimated Value:</label>
             <div className="total-display">₹{totalAmount}</div>
           </div>
 
@@ -135,16 +145,16 @@ export default function BuyForm({ stock, onClose, onSuccess }) {
               Cancel
             </button>
             <button
-              className="btn-confirm"
-              onClick={handleBuy}
+              className="btn-confirm-sell"
+              onClick={handleSell}
               disabled={
                 loading ||
-                Number(buyPrice) <= 0 ||
+                Number(sellPrice) <= 0 ||
                 Number(quantity) <= 0 ||
-                (currentPrice === 0 && !buyPrice)
+                Number(quantity) > maxQty
               }
             >
-              {loading ? "Processing..." : "Confirm Buy"}
+              {loading ? "Processing..." : "Confirm Sell"}
             </button>
           </div>
         </div>
@@ -155,26 +165,26 @@ export default function BuyForm({ stock, onClose, onSuccess }) {
   );
 }
 
-/* ================= RESPONSIVE CSS ================= */
+/* ================= CSS ================= */
 const css = `
 /* Overlay */
-.buy-form-overlay {
+.sell-form-overlay {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.6);
+  background: rgba(0, 0, 0, 0.7);
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 9999;
   padding: 20px;
-  backdrop-filter: blur(4px);
+  backdrop-filter: blur(5px);
 }
 
 /* Container */
-.buy-form-container {
+.sell-form-container {
   width: 100%;
   max-width: 500px;
   max-height: 90vh;
@@ -182,12 +192,14 @@ const css = `
 }
 
 /* Card */
-.buy-form-card {
-  background: white;
+.sell-form-card {
+  background: #1e293b; /* Dark theme card */
   border-radius: 16px;
   padding: 30px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
   position: relative;
+  color: white;
+  border: 1px solid #334155;
 }
 
 /* Header */
@@ -197,24 +209,25 @@ const css = `
   align-items: flex-start;
   margin-bottom: 24px;
   padding-bottom: 16px;
-  border-bottom: 2px solid #e2e8f0;
+  border-bottom: 1px solid #334155;
 }
 
 .form-header h2 {
   font-size: 26px;
-  color: #1e40af;
+  color: #f87171; /* Red tint for sell */
   margin: 0 0 6px 0;
   font-weight: 700;
 }
 
-.stock-name {
-  color: #64748b;
+.stock-info {
+  color: #94a3b8;
   margin: 0;
   font-size: 14px;
 }
+.stock-info strong { color: white; }
 
 .close-btn {
-  background: #f1f5f9;
+  background: rgba(255,255,255,0.1);
   border: none;
   width: 36px;
   height: 36px;
@@ -224,14 +237,13 @@ const css = `
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #64748b;
+  color: #cbd5e1;
   transition: all 0.2s;
-  flex-shrink: 0;
 }
 
 .close-btn:hover {
-  background: #e2e8f0;
-  color: #1e293b;
+  background: rgba(255,255,255,0.2);
+  color: white;
 }
 
 /* Form Group */
@@ -243,26 +255,29 @@ const css = `
   display: block;
   font-size: 14px;
   font-weight: 600;
-  color: #475569;
+  color: #cbd5e1;
   margin-bottom: 8px;
 }
 
 .form-input {
   width: 100%;
   padding: 12px 16px;
-  border: 2px solid #cbd5e1;
+  border: 1px solid #475569;
   border-radius: 10px;
   font-size: 16px;
-  box-sizing: border-box;
+  background: #0f172a;
+  color: white;
+  outline: none;
   transition: all 0.3s;
-  font-weight: 500;
 }
 
 .form-input:focus {
-  outline: none;
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+  border-color: #f87171;
+  box-shadow: 0 0 0 3px rgba(248, 113, 113, 0.1);
 }
+
+.error-border { border-color: #ef4444 !important; }
+.error-text { color: #ef4444; font-size: 12px; margin-top: 4px; display: block; }
 
 /* Display Boxes */
 .price-display,
@@ -275,18 +290,18 @@ const css = `
 }
 
 .price-display {
-  background: #f1f5f9;
-  color: #1e293b;
-  border: 2px solid #e2e8f0;
+  background: rgba(255,255,255,0.05);
+  color: #e2e8f0;
+  border: 1px solid #334155;
 }
 
 .total-display {
-  background: linear-gradient(135deg, #dcfce7 0%, #d1fae5 100%);
-  color: #16a34a;
-  border: 2px solid #86efac;
+  background: rgba(239, 68, 68, 0.1);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.2);
 }
 
-/* Action Buttons */
+/* Buttons */
 .form-actions {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -301,148 +316,40 @@ const css = `
   font-size: 16px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.3s;
+  transition: all 0.2s;
 }
 
 .btn-cancel {
-  background: #f1f5f9;
-  color: #64748b;
+  background: #334155;
+  color: #cbd5e1;
 }
 
 .btn-cancel:hover:not(:disabled) {
-  background: #e2e8f0;
-  color: #475569;
-}
-
-.btn-confirm {
-  background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
+  background: #475569;
   color: white;
-  box-shadow: 0 4px 12px rgba(22, 163, 74, 0.3);
 }
 
-.btn-confirm:hover:not(:disabled) {
+.btn-confirm-sell {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  color: white;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+
+.btn-confirm-sell:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(22, 163, 74, 0.4);
+  box-shadow: 0 6px 16px rgba(239, 68, 68, 0.4);
 }
 
-.btn-confirm:disabled,
-.btn-cancel:disabled {
+.btn-confirm-sell:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
 
-/* ================= RESPONSIVE ================= */
-
-/* Tablet */
-@media (max-width: 768px) {
-  .buy-form-overlay {
-    padding: 15px;
-  }
-
-  .buy-form-card {
-    padding: 24px;
-  }
-
-  .form-header h2 {
-    font-size: 22px;
-  }
-
-  .form-input {
-    font-size: 16px;
-  }
-
-  .price-display,
-  .total-display {
-    font-size: 18px;
-    padding: 12px;
-  }
-}
-
 /* Mobile */
 @media (max-width: 480px) {
-  .buy-form-overlay {
-    padding: 10px;
-    align-items: flex-end;
-  }
-
-  .buy-form-container {
-    max-height: 85vh;
-  }
-
-  .buy-form-card {
-    padding: 20px;
-    border-radius: 16px 16px 0 0;
-  }
-
-  .form-header {
-    margin-bottom: 20px;
-    padding-bottom: 12px;
-  }
-
-  .form-header h2 {
-    font-size: 20px;
-  }
-
-  .stock-name {
-    font-size: 12px;
-  }
-
-  .close-btn {
-    width: 32px;
-    height: 32px;
-    font-size: 18px;
-  }
-
-  .form-group {
-    margin-bottom: 16px;
-  }
-
-  .form-group label {
-    font-size: 13px;
-  }
-
-  .form-input {
-    padding: 10px 14px;
-    font-size: 15px;
-  }
-
-  .price-display,
-  .total-display {
-    font-size: 16px;
-    padding: 10px;
-  }
-
-  .form-actions {
-    gap: 10px;
-    margin-top: 20px;
-  }
-
-  .form-actions button {
-    padding: 12px 16px;
-    font-size: 15px;
-  }
-}
-
-/* Small Mobile */
-@media (max-width: 360px) {
-  .buy-form-card {
-    padding: 16px;
-  }
-
-  .form-header h2 {
-    font-size: 18px;
-  }
-
-  .form-actions {
-    grid-template-columns: 1fr;
-  }
-
-  .btn-cancel {
-    order: 2;
-  }
-
-  .btn-confirm {
-    order: 1;
-  }
+  .sell-form-card { padding: 20px; }
+  .form-actions { grid-template-columns: 1fr; }
+  .btn-cancel { order: 2; }
+  .btn-confirm-sell { order: 1; }
 }
 `;

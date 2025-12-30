@@ -26,10 +26,9 @@ export default function Watchlist() {
             headers: { Authorization: `Bearer ${token}` }
           });
           const data = await res.json();
-          console.log("Search Response:", data); // Debugging
 
           // Handle various possible backend response structures
-          const results = data.Data || data.result || (Array.isArray(data) ? data : []);
+          const results = data.Data || data.results || (Array.isArray(data) ? data : []);
 
           if (results && results.length > 0) {
             setSearchResults(results);
@@ -41,7 +40,7 @@ export default function Watchlist() {
         } catch (err) {
           console.error("Search error", err);
           setSearchResults([]);
-          setShowSuggestions(true); // Show dropdown with error/empty
+          setShowSuggestions(true);
         }
       } else {
         setSearchResults([]);
@@ -53,8 +52,8 @@ export default function Watchlist() {
   }, [symbol]);
 
   const selectSuggestion = (s) => {
-    setSymbol(s.symbol);       // Set the input to the symbol
-    setShowSuggestions(false); // Hide dropdown
+    setSymbol(s.symbol);
+    setShowSuggestions(false);
   };
 
   /* ================= FETCH PRICE ================= */
@@ -67,14 +66,10 @@ export default function Watchlist() {
         `${API_BASE_URL}/stock/quote/${symbol}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      if (!res.ok) {
-        console.error("Price fetch failed", res.status);
-        return null;
-      }
+      if (!res.ok) return null;
       const data = await res.json();
       return data.price ?? null;
     } catch (err) {
-      console.error("fetchPrice error:", err);
       return null;
     }
   };
@@ -100,7 +95,6 @@ export default function Watchlist() {
   /* ================= ADD STOCK ================= */
   const handleAdd = async () => {
     if (!symbol.trim()) return alert("Enter symbol");
-    // Ensure we don't add duplicates if possible logic exists in hook, or just rely on backend
     await addToWatchlist(symbol.toUpperCase());
     setSymbol("");
     setShowSuggestions(false);
@@ -115,41 +109,42 @@ export default function Watchlist() {
   };
 
   return (
-    <div className="watchlist-page" style={{ paddingTop: "80px", minHeight: "100vh", background: "#0a0e17", color: "white" }}>
+    <div className="watchlist-page">
       <Navbar />
-      <div style={styles.container}>
-        <h2 style={styles.title}>My Watchlist</h2>
+      <div className="w-container">
 
-        <div style={styles.addSection}>
-          <div style={{ position: "relative", flex: 1 }}>
+        <div className="w-header">
+          <h1 className="w-title">My <span className="text-gradient">Watchlist</span></h1>
+          <p className="w-subtitle">Track your favorite assets in real-time</p>
+        </div>
+
+        <div className="add-section">
+          <div className="search-wrapper">
             <input
               placeholder="Search Company/Symbol (e.g. Apple)"
               value={symbol}
               onChange={(e) => setSymbol(e.target.value)}
-              style={styles.searchInput}
+              className="w-search-input"
               onFocus={() => symbol.length > 1 && setShowSuggestions(true)}
-              // Delay blur to allow click on suggestion
               onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
             />
 
             {/* SUGGESTIONS DROPDOWN */}
             {showSuggestions && (
-              <div style={styles.suggestionsDropdown}>
+              <div className="suggestions-dropdown">
                 {searchResults.length > 0 ? (
                   searchResults.map((item, idx) => (
                     <div
                       key={idx}
-                      style={styles.suggestionItem}
+                      className="suggestion-item"
                       onMouseDown={() => selectSuggestion(item)}
                     >
-                      <span style={{ fontWeight: "bold", color: "#bef264" }}>{item.symbol}</span>
-                      <span style={{ fontSize: "12px", color: "#94a3b8", marginLeft: "10px" }}>
-                        {item.description}
-                      </span>
+                      <span className="s-symbol">{item.symbol}</span>
+                      <span className="s-desc">{item.description}</span>
                     </div>
                   ))
                 ) : (
-                  <div style={{ padding: "12px", color: "#94a3b8", fontSize: "14px", fontStyle: "italic" }}>
+                  <div className="no-results">
                     No results found
                   </div>
                 )}
@@ -157,52 +152,53 @@ export default function Watchlist() {
             )}
           </div>
 
-          <button onClick={handleAdd} className="btn-primary" style={styles.addBtn}>
-            + Add Stock
+          <button onClick={handleAdd} className="btn-add-stock">
+            + Add
           </button>
         </div>
 
-        {watchlist.length === 0 && (
-          <div className="glass-panel" style={{ padding: "40px", textAlign: "center", color: "var(--text-muted)" }}>
-            Your watchlist is empty. Add stocks to track them here.
+        {watchlist.length === 0 ? (
+          <div className="empty-state">
+            <div className="empty-icon">📊</div>
+            <h3>Your watchlist is empty</h3>
+            <p>Search for stocks above to start tracking them.</p>
           </div>
-        )}
+        ) : (
+          <div className="w-grid">
+            {watchlist.map((item) => {
+              const cp = prices[item];
+              const isAvailable = cp !== undefined && cp !== null;
 
-        <div style={styles.grid}>
-          {watchlist.map((item) => {
-            const cp = prices[item];
-            const isAvailable = cp !== undefined && cp !== null;
+              return (
+                <div className="w-card" key={item}>
+                  <div className="w-card-header">
+                    <h3 className="w-symbol">{item}</h3>
+                    <div className="w-price">
+                      {loadingPrices ? "..." : isAvailable ? `₹${cp.toFixed(2)}` : "N/A"}
+                    </div>
+                  </div>
 
-            return (
-              <div className="glass-panel" style={styles.card} key={item}>
-                <div style={styles.cardHeader}>
-                  <h3 style={styles.symbol}>{item}</h3>
-                  <div style={styles.priceTag}>
-                    {loadingPrices ? "Loading..." : isAvailable ? `₹${cp.toFixed(2)}` : "N/A"}
+                  <div className="w-card-actions">
+                    <button
+                      className="btn-w-buy"
+                      disabled={!isAvailable}
+                      onClick={() => handleBuyClick(item, cp)}
+                    >
+                      Buy Now
+                    </button>
+
+                    <button
+                      className="btn-w-remove"
+                      onClick={() => removeFromWatchlist(item)}
+                    >
+                      Remove
+                    </button>
                   </div>
                 </div>
-
-                <div style={styles.actions}>
-                  <button
-                    className="btn-primary"
-                    style={styles.buyBtn}
-                    disabled={!isAvailable}
-                    onClick={() => handleBuyClick(item, cp)}
-                  >
-                    Buy Now
-                  </button>
-
-                  <button
-                    style={styles.removeBtn}
-                    onClick={() => removeFromWatchlist(item)}
-                  >
-                    Remove
-                  </button>
-                </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        )}
 
         {/* Buy Form Modal */}
         {selectedStock && (
@@ -215,123 +211,247 @@ export default function Watchlist() {
           />
         )}
       </div>
-      <style>{`
-        .glass-panel {
-          background: #111827; 
-          border: 1px solid #1f2937;
-          border-radius: 12px;
-        }
-        .btn-primary {
-           background: #10b981;
-           color: white;
-           border: none;
-           padding: 10px 16px;
-           border-radius: 8px;
-           cursor: pointer;
-           font-weight: 600;
-        }
-      `}</style>
+      <style>{css}</style>
     </div>
   );
 }
 
-const styles = {
-  container: {
-    maxWidth: "1000px",
-    margin: "0 auto",
-    padding: "40px 24px"
-  },
-  title: {
-    fontSize: "32px",
-    marginBottom: "24px",
-    color: "white",
-    fontWeight: "700"
-  },
-  addSection: {
-    display: "flex",
-    gap: "12px",
-    marginBottom: "32px",
-    maxWidth: "600px",
-    position: "relative", // context for z-index if needed
-  },
-  searchInput: {
-    width: "100%",
-    padding: "12px 16px",
-    borderRadius: "10px",
-    border: "1px solid #334155",
-    background: "#1e293b",
-    color: "white",
-    outline: "none",
-  },
-  addBtn: {
-    whiteSpace: "nowrap",
-  },
-  suggestionsDropdown: {
-    position: "absolute",
-    top: "100%",
-    left: 0,
-    right: 0,
-    background: "#1e293b",
-    border: "1px solid #334155",
-    borderRadius: "8px",
-    marginTop: "4px",
-    zIndex: 9999, // Max z-index
-    maxHeight: "200px",
-    overflowY: "auto",
-    boxShadow: "0 4px 12px rgba(0,0,0,0.5)"
-  },
-  suggestionItem: {
-    padding: "10px 16px",
-    cursor: "pointer",
-    borderBottom: "1px solid rgba(255,255,255,0.05)",
-    display: "flex",
-    alignItems: "center"
-  },
-  grid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
-    gap: "20px",
-  },
-  card: {
-    padding: "20px",
-    display: "flex",
-    flexDirection: "column",
-    gap: "20px",
-  },
-  cardHeader: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  symbol: {
-    fontSize: "20px",
-    fontWeight: "700",
-    color: "white",
-    margin: 0,
-  },
-  priceTag: {
-    fontSize: "18px",
-    fontWeight: "600",
-    color: "#bef264",
-  },
-  actions: {
-    display: "grid",
-    gridTemplateColumns: "1fr 1fr",
-    gap: "12px",
-  },
-  buyBtn: {
-    width: "100%",
-    fontSize: "14px",
-    padding: "10px",
-  },
-  removeBtn: {
-    background: "rgba(239, 68, 68, 0.1)",
-    border: "1px solid rgba(239, 68, 68, 0.2)",
-    color: "#ef4444",
-    borderRadius: "8px",
-    cursor: "pointer",
-    fontWeight: "500",
-    transition: "background 0.2s",
-    padding: "10px"
-  }
-};
+const css = `
+.watchlist-page {
+  padding-top: 80px; 
+  min-height: 100vh;
+  background: #0a0e17;
+  color: #e2e8f0;
+  font-family: 'Outfit', sans-serif;
+}
+
+.w-container {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 40px 24px;
+}
+
+.w-header {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.w-title {
+  font-size: 42px;
+  font-weight: 800;
+  color: white;
+  margin-bottom: 8px;
+}
+
+.text-gradient {
+  background: linear-gradient(to right, #0ea5e9, #22d3ee);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.w-subtitle {
+  color: #94a3b8;
+  font-size: 18px;
+}
+
+/* Search Section */
+.add-section {
+  display: flex;
+  gap: 16px;
+  max-width: 600px;
+  margin: 0 auto 40px;
+  position: relative;
+  z-index: 10;
+}
+
+.search-wrapper {
+  position: relative;
+  flex: 1;
+}
+
+.w-search-input {
+  width: 100%;
+  padding: 14px 20px;
+  border-radius: 12px;
+  border: 1px solid #334155;
+  background: #1e293b;
+  color: white;
+  font-size: 16px;
+  outline: none;
+  transition: 0.3s;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.w-search-input:focus {
+  border-color: #0ea5e9;
+  box-shadow: 0 0 0 4px rgba(14, 165, 233, 0.1);
+}
+
+.btn-add-stock {
+  background: linear-gradient(135deg, #0ea5e9, #0284c7);
+  color: white;
+  border: none;
+  padding: 0 24px;
+  border-radius: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.2s;
+  box-shadow: 0 4px 15px rgba(14, 165, 233, 0.3);
+}
+
+.btn-add-stock:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.1);
+}
+
+/* Dropdown */
+.suggestions-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 12px;
+  margin-top: 8px;
+  z-index: 9999;
+  max-height: 250px;
+  overflow-y: auto;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+}
+
+.suggestion-item {
+  padding: 12px 16px;
+  cursor: pointer;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: background 0.2s;
+}
+
+.suggestion-item:hover {
+  background: rgba(14, 165, 233, 0.1);
+}
+
+.s-symbol {
+  font-weight: 700;
+  color: #38bdf8;
+}
+
+.s-desc {
+  font-size: 12px;
+  color: #94a3b8;
+  max-width: 60%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: right;
+}
+
+.no-results {
+  padding: 16px;
+  text-align: center;
+  color: #94a3b8;
+  font-style: italic;
+}
+
+/* Grid */
+.w-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 24px;
+  perspective: 1000px;
+}
+
+.w-card {
+  background: linear-gradient(145deg, rgba(15, 23, 42, 0.6), rgba(15, 23, 42, 0.4));
+  border: 1px solid rgba(56, 189, 248, 0.2);
+  border-radius: 16px;
+  padding: 24px;
+  backdrop-filter: blur(10px);
+  transition: transform 0.3s, border-color 0.3s;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.w-card:hover {
+  transform: translateY(-5px);
+  border-color: #38bdf8;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+}
+
+.w-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.w-symbol {
+  font-size: 24px;
+  font-weight: 700;
+  color: white;
+  margin: 0;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+}
+
+.w-price {
+  font-size: 20px;
+  font-weight: 600;
+  color: #38bdf8;
+}
+
+.w-card-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.btn-w-buy {
+  background: rgba(16, 185, 129, 0.1);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  padding: 10px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.2s;
+}
+.btn-w-buy:hover:not(:disabled) {
+  background: rgba(16, 185, 129, 0.2);
+}
+.btn-w-buy:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-w-remove {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  padding: 10px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.2s;
+}
+.btn-w-remove:hover {
+  background: rgba(239, 68, 68, 0.2);
+}
+
+.empty-state {
+  text-align: center;
+  padding: 80px 20px;
+  background: rgba(30, 41, 59, 0.5);
+  border-radius: 20px;
+  border: 2px dashed #334155;
+  color: #94a3b8;
+}
+
+.empty-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  opacity: 0.5;
+}
+`;

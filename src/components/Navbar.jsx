@@ -1,42 +1,34 @@
 import React, { useState } from "react";
 import { useAuth } from "../hooks/useAuth";
 import { NavLink, useNavigate } from "react-router-dom";
+import FullLogo from "../assets/FullLogo.png"; // Import the logo
 
 const Navbar = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
 
-  const handleSearch = (e) => {
-    if (e.key === "Enter" && searchQuery.trim()) {
-      navigate(`/search/${searchQuery}`);
-      setSearchQuery("");
-      setIsMobileMenuOpen(false);
-    }
+  // Helper to get first name from userName
+  const getUserName = () => {
+    if (!user) return "Trader";
+    // Using userName property as per user request/logs. 
+    // Fallback to name if userName is missing, or "Trader" if both missing
+    return user.userName || user.name || "Trader";
   };
 
+  const displayName = getUserName();
+  const displayInitial = displayName ? displayName[0].toUpperCase() : "U";
+
   return (
-    <nav className="navbar glass-panel">
+    <nav className="navbar">
       <div className="nav-container">
         {/* LEFT: LOGO */}
         <div className="nav-brand" onClick={() => navigate("/dashboard")}>
           <div className="logo-box">
-            <div className="logo-glint"><img src='/assets/image.png ' alt="logo" /></div>
+            {/* Use imported FullLogo */}
+            <img src={FullLogo} alt="TradeSphere Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
           </div>
           <span className="brand-text">TradeSphere</span>
-        </div>
-
-        {/* MIDDLE: SEARCH BAR */}
-        <div className="nav-search desktop-only">
-          <span className="search-icon">🔍</span>
-          <input
-            type="text"
-            placeholder="Search stocks..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            onKeyDown={handleSearch}
-          />
         </div>
 
         {/* MIDDLE-RIGHT: LINKS */}
@@ -66,10 +58,10 @@ const Navbar = () => {
           {user ? (
             <div className="user-section">
               <span className="welcome-text desktop-only">
-                Welcome, <span className="u-name">{user.name}</span>
+                Welcome <span className="u-name">{displayName}</span>
               </span>
               <div className="avatar-circle">
-                {user.name ? { userName } : "U"}
+                {displayInitial}
               </div>
               <button onClick={logout} className="btn-logout" title="Logout">⏻</button>
             </div>
@@ -87,15 +79,6 @@ const Navbar = () => {
       {/* MOBILE MENU */}
       {isMobileMenuOpen && (
         <div className="mobile-menu glass-panel">
-          <div className="mobile-search">
-            <input
-              type="text"
-              placeholder="Search..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyDown={handleSearch}
-            />
-          </div>
           <NavLink to="/dashboard" onClick={() => setIsMobileMenuOpen(false)}>Dashboard</NavLink>
           <NavLink to="/portfolio" onClick={() => setIsMobileMenuOpen(false)}>Portfolio</NavLink>
           <NavLink to="/watchlist" onClick={() => setIsMobileMenuOpen(false)}>Watchlist</NavLink>
@@ -114,16 +97,15 @@ const css = `
   height: 80px;
   position: fixed;
   top: 0;
-  left: 0;
-  right: 0;
   z-index: 9999;
-  background: rgba(10, 14, 23, 0.9);
-  backdrop-filter: blur(12px);
-  background: rgba(10, 14, 23, 0.9);
+  background: rgba(10, 14, 23, 0.95); /* Slightly less transp for readability */
   backdrop-filter: blur(12px);
   border-bottom: 1px solid rgba(255,255,255,0.08);
   display: flex;
+  align-items: center;
   justify-content: center;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+  width: 98.7%;
 }
 
 .nav-container {
@@ -134,6 +116,7 @@ const css = `
   align-items: center;
   gap: 20px;
   justify-content: space-between;
+  box-sizing: border-box; /* Ensure padding doesn't overflow width */
 }
 
 /* BRAND */
@@ -144,22 +127,17 @@ const css = `
   cursor: pointer;
 }
 
+/* Adjusted logo box for Custom Logo */
 .logo-box {
-  width: 32px;
-  height: 32px;
-  background: linear-gradient(135deg, #10b981, #059669); /* Greenish like reference */
+  width: 40px; /* Slightly larger for full logo visibility */
+  height: 40px;
+  /* Removed background gradient so transparency works */
   border-radius: 8px;
   position: relative;
   overflow: hidden;
-}
-
-.logo-glint {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(45deg, transparent 40%, rgba(255,255,255,0.4) 50%, transparent 60%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .brand-text {
@@ -167,34 +145,6 @@ const css = `
   font-weight: 700;
   color: white;
   letter-spacing: 0.5px;
-}
-
-/* SEARCH */
-.nav-search {
-  flex: 1;
-  max-width: 300px;
-  border-radius: 8px;
-  padding: 8px 12px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: rgba(10, 14, 23, 0.9);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(4, 36, 15, 0.9);
-}
-
-.nav-search input {
-  background: transparent;
-  border: none;
-  color: white;
-  outline: none;
-  width: 100%;
-  font-size: 14px;
-}
-
-.search-icon {
-  font-size: 14px;
-  opacity: 0.7;
 }
 
 /* LINKS */
@@ -206,10 +156,10 @@ const css = `
 .nav-item {
   color: #94a3b8;
   text-decoration: none;
-  padding: 10px 16px;
+  padding: 8px 12px;
   font-size: 14px;
   font-weight: 500;
-  border-radius: 8px;
+  border-radius: 6px;
   transition: all 0.2s;
 }
 
@@ -246,10 +196,7 @@ const css = `
   color: #94a3b8;
 }
 
-.u-name {
-  color: white;
-  font-weight: 600;
-}
+.u-name { color: white; font-weight: 600; }
 
 .avatar-circle {
   width: 28px;
@@ -306,19 +253,7 @@ const css = `
   flex-direction: column;
   gap: 16px;
   border-bottom: 1px solid rgba(255,255,255,0.1);
-}
-
-.mobile-search {
-  background: #1e293b;
-  padding: 10px;
-  border-radius: 8px;
-}
-.mobile-search input {
-  width: 100%;
-  background: transparent;
-  border: none;
-  color: white;
-  outline: none;
+  z-index: 9998;
 }
 
 .mobile-menu a {

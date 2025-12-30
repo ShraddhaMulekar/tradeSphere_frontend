@@ -8,7 +8,8 @@ export const PortfolioProvider = ({ children }) => {
 
   const loadPortfolio = async () => {
     try {
-      const res = await apiFetch("/portfolio/all", "GET");
+      // Add cache-buster to ensure we get latest holdings after trades
+      const res = await apiFetch(`/portfolio/all?t=${Date.now()}`, "GET");
       setPortfolio(res.Holdings || []);
     } catch (err) {
       console.error("Portfolio Load Error:", err);

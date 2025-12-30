@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { API_BASE_URL } from "../api/api";
 import { useNavigate } from "react-router-dom";
+import FullLogo from "../assets/FullLogo.png";
 
 export default function Register() {
   const [name, setName] = useState("");
@@ -55,16 +56,8 @@ export default function Register() {
     <div className="register-container">
       {/* LEFT SIDE - HERO */}
       <div className="hero-section">
-        <div className="hero-content">
-          <h1 className="hero-title">Your Journey <br />Starts Here.</h1>
-          <p className="hero-subtitle">
-            Create your account today and get access to premium market insights, real-time alerts, and more.
-          </p>
-          <div className="hero-features">
-            <div className="feature">✓ Real-time Market Data</div>
-            <div className="feature">✓ Advanced Charting Tools</div>
-            <div className="feature">✓ Secure & Encrypted</div>
-          </div>
+        <div className="hero-logo-container" onClick={() => navigate("/")}>
+          <img src={FullLogo} alt="TradeSphere Logo" className="hero-logo-large" />
         </div>
         <div className="chart-overlay"></div>
       </div>
@@ -154,22 +147,24 @@ export default function Register() {
 const css = `
 .register-container {
   display: flex;
-  height: 100vh;
-  width: 100vw;
+  justify-content: center;
+  align-items: center;
   background: #0a0e17;
   overflow: hidden;
 }
 
 .hero-section {
   flex: 1.2;
-  background: linear-gradient(135deg, #059669 0%, #064e3b 100%);
+  background: radial-gradient(circle at center, #064e3b 0%, #0a0e17 100%);
   position: relative;
   display: flex;
   flex-direction: column;
   justify-content: center;
+  align-items: center;
   padding: 60px;
   color: white;
   overflow: hidden;
+  border-right: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .hero-content {
@@ -234,6 +229,33 @@ const css = `
 .form-header {
   margin-bottom: 32px;
   text-align: left;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.hero-logo-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+  z-index: 2;
+  cursor: pointer;
+  transition: transform 0.3s ease;
+}
+
+.hero-logo-container:hover {
+  transform: scale(1.05);
+}
+
+.hero-logo-large {
+  width: 90%;
+  max-width: 600px;
+  height: auto;
+  filter: drop-shadow(0 0 50px rgba(16, 185, 129, 0.2));
+  object-fit: contain;
 }
 
 .form-title {
