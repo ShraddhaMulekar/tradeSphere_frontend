@@ -84,6 +84,7 @@ const Navbar = () => {
           <NavLink to="/watchlist" onClick={() => setIsMobileMenuOpen(false)}>Watchlist</NavLink>
           <NavLink to="/popular" onClick={() => setIsMobileMenuOpen(false)}>Markets</NavLink>
           <NavLink to="/orders" onClick={() => setIsMobileMenuOpen(false)}>Transaction</NavLink>
+          <NavLink to="/wallet" onClick={() => setIsMobileMenuOpen(false)}>Wallet</NavLink>
         </div>
       )}
 
