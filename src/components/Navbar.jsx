@@ -105,7 +105,7 @@ const css = `
   align-items: center;
   justify-content: center;
   box-shadow: 0 4px 20px rgba(0,0,0,0.4);
-  width: 98.7%;
+  width: 98.9%;
 }
 
 .nav-container {
